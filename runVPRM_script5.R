@@ -1,17 +1,24 @@
-# FOR SOME REASON THERE ARE NA VALUES IN PAR (SWRAD) this may be causing issues
-# but there are NA values in PAR for the 30m resolution and there aren't issues there....
-#Added pre-processing of GOES data to help fix this
+## Updates to code by Sabrina Madsen-Colford
+## smadsen@physics.utoronto.ca
 
-memory.limit(size=5e8)
-## IAN SMITH
+## Original code by IAN SMITH
 ## iasmith [at] bu.edu
 
-# This script imports all VPRM driver data, sources VPRM parameters and equations, and executes the model
-# This script creates the file vprm_30m_nist.csv used in Winbourne et al. 2021
-# Directories in this script correspond to the structure of the computing cluster where model calculations were executed.
-# To run this code, file paths and directories will need to be restructured to import/write files
+# This script imports all VPRM driver data, sources VPRM parameters and 
+# equations, and executes the model
+
+# This script creates the file vprm_GMIS_Toronto_ACI_SOLRIS_ISA_500m_<loc>_V061_
+# <yr>_no_PScale_adjusted_Topt_Ra_URB_parameters_fixed_gapfilled_LSWI_filtered_
+# bilinear_PAR_block_<block>.csv  where <loc> represents the location (GTA,
+# Borden, TPD, or TP39), <yr> represents the year of interest and <block> 
+# represents the block of pixels, used in Madsen-Colford et al. 2025.
+
+# To run this code, file paths and directories will need to be updated to
+# import/write files. Portions of the code to be modified by the user are 
+# marked above by '***'
 
 ## Load libraries
+memory.limit(size=5e8)
 library("data.table")
 library("raster")
 library("parallel")
@@ -25,21 +32,21 @@ if (is.na(cores)) cores=3
 registerDoParallel(cores)
 print(paste0("n. of cores is ",cores))
 
-#setwd("/projectnb/buultra/iasmith/VPRM_urban_30m/")
-
+# *** Change path
 setwd('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files')
 
 # Arguments: 
-city = 'TPD_V061_500m_2018'
-yr = 2018
-veg_type = 'DBF' #Maybe use Mixed forest instead?
+# ** Change city name, year, & dominant vegetation type
+city = 'GTA_V061_500m_2021'
+yr = 2021
+veg_type = 'DBF'
 
 ## If area is too big (n of pixels > nrow_block) divide in blocks of nrow_block cells
 nrow_block=2500
 
 # Climate data folder
-dir_clima = paste0('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/2018') # climate data in /urbanVPRM_30m/driver_data/rap_goes/
-#dir_clima = paste0('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/2021') # climate data in /urbanVPRM_30m/driver_data/rap_goes/
+# *** Change path
+dir_clima = paste0('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/2021') 
 
 ## Define the path to the folder where outputs are saved 
 dir.create(paste0("outputs"), showWarnings = FALSE)
@@ -58,27 +65,23 @@ tifdt_fun = function(raster,name){
 
 ### LOAD DATA
 ## Land cover and ISA
-## NEED TO CONVERT LC DATA TO SAME FORMAT AS NLCD DATA
-LC = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/LandCover/MODIS_V061_LC_TPD_500m_2018.tif') # Land cover data in /urbanVPRM_30m/driver_data/lc_isa/
-#LC = raster('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/LandCover/MODIS_V061_LC_GTA_500m_2021.tif') # Land cover data in /urbanVPRM_30m/driver_data/lc_isa/
+# *** Change path & File name
+LC = raster('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/LandCover/MODIS_V061_LC_GTA_500m_2021.tif') 
 
 LC.dt = tifdt_fun(LC,"LandCover")
-#LC_NIST = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/NIST30/Landcover/LC_NIST.tif') # Land cover data in /urbanVPRM_30m/driver_data/lc_isa/
-#LC_NIST.dt = tifdt_fun(LC_NIST,"LandCover")
 
-ISA_dat = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/ISA/ISA_TPD_GMIS_Toronto_ACI_SOLRIS_500m_2018.tif') # Impervious data in /urbanVPRM_30m/driver_data/lc_isa/
-#ISA_dat = raster('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/ISA/ISA_GTA_GMIS_Toronto_ACI_SOLRIS_500m_2021.tif') # Impervious data in /urbanVPRM_30m/driver_data/lc_isa/
+# *** Change path & file name
+ISA_dat = raster('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/ISA/ISA_GTA_GMIS_Toronto_ACI_SOLRIS_500m_2021.tif') # Impervious data in /urbanVPRM_30m/driver_data/lc_isa/
 
 ISA_dat<-resample(ISA_dat,LC) #for some reason x and y were offset by 1*10^-9 compared to LC raster, fix it by resampling
 ISA.dt = tifdt_fun(ISA_dat,"ISA")
 
-C4 = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/LandCover/C4_frac_TPD_500m_2018.tif') # C4 fraction
-#C4 = raster('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/LandCover/C4_frac_GTA_500m_2021.tif') # C4 fraction
+# *** Change path & file name
+C4 = raster('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/LandCover/C4_frac_GTA_500m_2021.tif') # C4 fraction
 
 C4<-resample(C4,LC) #for some reason x and y were offset by 1*10^-9 compared to LC raster, fix it by resampling
 C4.dt = tifdt_fun(C4,"C4")
 ## Merge LC and ISA
-#LC_ISA.dt = merge(LC.dt,ISA.dt,by=c("Index","x","y")) 
 #for some reason y is off by 1*10^-9 so it won't merge do it manually below:
 LC_ISA.dt = merge(LC.dt,ISA.dt,by=c("Index","x"))
 LC_ISA.dt = merge(LC_ISA.dt,C4.dt,by=c("Index","x"))
@@ -93,8 +96,8 @@ npixel = as.numeric(nrow(LC_ISA.dt))
 
 print(paste0("n. of pixels is ",npixel))
 
-
-wtr_dat = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/Impermeable_Surface/SOLRIS_aggregated_water_cover_TPD.tif') # Impervious data in /urbanVPRM_30m/driver_data/lc_isa/
+# *** Change path & file name. Create water cover using 'SOLRIS_ACI_wtr_plot.R'
+wtr_dat = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/Impermeable_Surface/SOLRIS_aggregated_water_cover_GTA.tif') # Impervious data in /urbanVPRM_30m/driver_data/lc_isa/
 wtr_dat<-resample(wtr_dat,LC) #for some reason x and y were offset by 1*10^-9 compared to LC raster, fix it by resampling
 wtr.dt = tifdt_fun(wtr_dat,"wtr")
 
@@ -103,18 +106,16 @@ rm(ISA_dat,LC.dt,ISA.dt,C4,C4.dt,LC_ISA.test,wtr_dat)
 print("LC, ISA & wtr loaded!")
 
 
-### SEE GREENUP_DORMANCY.R file for removing NA AND UNPHYSICAL VALUES ###
+### *** SEE GREENUP_DORMANCY.R file for removing NA AND UNPHYSICAL VALUES ###
 
 ## Import Phenology data
-# Growing Season calendar from resampled Multi Source Land Surface Phenology Product product (NASA; https://lpdaac.usgs.gov/products/mslsp30nav001/)
-# 15% EVI increase
-#greenup = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/driver_data/ms_lsp/greenup.tif') # Phenology data in /urbanVPRM_30m/driver_data/ms_lsp/
-
-greenup = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/MODIS_phenology/MODIS_V061_avg_greenup_2018.tif') # Phenology data in /urbanVPRM_30m/driver_data/ms_lsp/
+# *** Change path/file name
+greenup = raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/MODIS_phenology/MODIS_V061_avg_greenup_2021.tif') # Phenology data in /urbanVPRM_30m/driver_data/ms_lsp/
 greenup <- crop(greenup,LC) #crop greenup to be the same size as LC data
 
 # 85% EVI decrease
-dormancy <- raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/MODIS_phenology/MODIS_V061_avg_Dormancy_2018.tif') # Phenology data in /urbanVPRM_30m/driver_data/ms_lsp/
+# *** Change path/file name
+dormancy <- raster('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/MODIS_phenology/MODIS_V061_avg_Dormancy_2021.tif') # Phenology data in /urbanVPRM_30m/driver_data/ms_lsp/
 dormancy<- crop(dormancy,LC)
 SoGS.dt = tifdt_fun(greenup,"SOS")
 EoGS.dt = tifdt_fun(dormancy,"EOS")
@@ -123,14 +124,10 @@ GS.dt = merge(SoGS.dt,EoGS.dt,by=c("Index","x","y"))
 rm(greenup,dormancy,SoGS.dt,EoGS.dt)
 
 ## Landsat EVI and LSWI
-LS_VI.dt = fread('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/adjusted_evi_lswi_interpolated_modis_v061_qc_filtered_LSWI_filtered.csv', data.table=FALSE) #EVI/LSWI data in /urbanVPRM_30m/driver_data/evi_lswi/
-#LS_VI.dt = fread('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/adjusted_evi_lswi_interpolated_modis_v061_qc_filtered_LSWI_filtered.csv', data.table=FALSE) #EVI/LSWI data in /urbanVPRM_30m/driver_data/evi_lswi/
+# *** Change path/file name
+LS_VI.dt = fread('E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/adjusted_evi_lswi_interpolated_modis_fixed.csv', data.table=FALSE) #EVI/LSWI data in /urbanVPRM_30m/driver_data/evi_lswi/
 
-#plot(LS_VI.dt$LSWI[LS_VI.dt$Index==11026])
-#points(LS_VI.dt$LSWI_inter[LS_VI.dt$Index==11026],col='blue')
-#points(LS_VI.dt$LSWI[LS_VI.dt$Index==11026],col='red',pch=16)
-
-#Uncomment below to visualize
+# *** Uncomment below to visualize
 #x.stk<-NULL
 #y.stk<-NULL
 #Date.stk <- NULL
@@ -215,16 +212,17 @@ LS_VI.dt = fread('C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/data
 #       aes(x = coords.x1, y = coords.x2, width=1/240,
 #           height=1/240)) + geom_tile(aes(fill=All.data.evi$EVI_inter)) + geom_point(data=Fpix,colour = 'red') + coord_equal() + xlab(expression(Longitude ^o)) + ylab(expression(Latitude ^o)) + ggtitle('GTA Interpolated EVI')
 
+# *** End of uncomment to visualize
 
 
-
-
-## Load EVI data for a reference (Fully forested) pixel
+## Load EVI data for a reference (Fully forested deciduous) pixel
 # Borden Pixel = 98 # deciduous
-# TP39 Pixel = 158 #deciduous or  109 #Mixed forest
+# TP39 Pixel = 158 #deciduous
 # TPD Pixel = 153 #deciduous
 # GTA Pixel = 3011 # deciduous
-EVI_ref = LS_VI.dt[which(LS_VI.dt$Index == 153),]  
+# *** CHOOSE THE INDEX (pixel) DEPENDING ON YOUR REGION (see above for pixels 
+#     used in Madsen-Colford et al. 2025)
+EVI_ref = LS_VI.dt[which(LS_VI.dt$Index == 3011),]  
 EVI_ref = EVI_ref$EVI_inter
 minEVI_ref = min(EVI_ref)
 EVI_ref = rep(EVI_ref,each=24)
@@ -232,7 +230,8 @@ EVI_ref = rep(EVI_ref,each=24)
 #############################################################################
 
 ### Load script that defines model parameters and calculates fluxes
-source("UrbanVPRM_code/VPRM_parameters_equations.R") # Parameters/equations script found in # Phenology data in /urbanVPRM_30m/scripts/
+# *** Change path
+source("UrbanVPRM_code/VPRM_parameters_equations.R")
 print("Get scale factors and GEE and Respiration fluxes")
 
 ## First define time period datatable. It will give the first 2 columns of the output data table.. 
@@ -258,13 +257,7 @@ for(j in 1:length(blocks)) {
   } else if (block == blocks[length(blocks)]) {
     lim = npixel+1
   }
-  
-  #if(length(blocks)>1){
-  #  clima.dt = readRDS(paste0(dir_clima,"/rap_goes_",city,"_",yr,"_hourly_block_",sprintf("%08i",as.numeric(block)),".rds")) 
-  #} else {
-  clima.dt = readRDS(paste0(dir_clima,"/rap_goes_",city,"_hourly_fixed.rds"))#v3_cropped.rds"))
-  #clima.dt = readRDS(paste0(dir_clima,"/rap_goes_GTA_500m_",yr,"_hourly.rds"))
-  #}
+  clima.dt = readRDS(paste0(dir_clima,"/rap_goes_",city,"_hourly_fixed.rds"))
   
 
   output.dt = foreach(i=block:(lim-1)) %do% {
@@ -321,13 +314,13 @@ for(j in 1:length(blocks)) {
   cat("\n Save data table with outputs..")
   
   if(length(blocks)>1){
-    write.table(output.dt, paste0("C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/vprm_GMIS_Toronto_ACI_SOLRIS_ISA_500m_TPD_V061_2018_no_PScale_adjusted_Topt_Ra_URB_parameters_fixed_gapfilled_LSWI_filtered_bilinear_PAR_block_",sprintf("%08i",as.numeric(block)),".csv"),
+    # *** Change path/file name
+    write.table(output.dt, paste0("E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/vprm_GMIS_Toronto_ACI_SOLRIS_ISA_500m_GTA_V061_2018_no_PScale_adjusted_Topt_Ra_URB_parameters_fixed_gapfilled_LSWI_QA_fixed_filtered_bilinear_PAR_block_",sprintf("%08i",as.numeric(block)),".csv"),
                 row.names = F, sep = ',')
-    #saveRDS(output.dt, paste0(dir_out,"/fluxes_",city,"_",yr,"_",veg_type,"_block_",
-    #                          sprintf("%08i",as.numeric(block)),".rds"))
   } else {
-    write.table(output.dt, "C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/TPD_V061_500m_2018/vprm_GMIS_Toronto_ACI_SOLRIS_ISA_500m_TPD_V061_2018_no_PScale_adjusted_Topt_Ra_URB_parameters_fixed_gapfilled_LSWI_filtered_bilinear_PAR.csv",row.names = F,
-                sep = ',')
+    # *** Change path/file name
+    write.table(output.dt, paste0("E:/Research/UrbanVPRM/dataverse_files/GTA_V061_500m_2021/vprm_GMIS_Toronto_ACI_SOLRIS_ISA_500m_GTA_V061_2018_no_PScale_adjusted_Topt_Ra_URB_parameters_fixed_gapfilled_LSWI_QA_fixed_filtered_bilinear_PAR.csv"),
+                row.names = F, sep = ',')
   }
   
   cat(paste0("\n Wrote block ", block,"!"))

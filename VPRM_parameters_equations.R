@@ -1,55 +1,33 @@
-## IAN SMITH
+## Updates to code by Sabrina Madsen-Colford
+## smadsen@physics.utoronto.ca
+
+## Original code by IAN SMITH
 ## iasmith [at] bu.edu
 
-# This script defines VPRM parameters and equations used in Winbourne et al. 2021
-# Directories in this script correspond to the structure of the computing cluster where model calculations were executed.
+# This script defines VPRM parameters and equations used in Madsen-Colford
+# et al. 2025
+
+# To run this code, file paths and directories will need to be updated to
+# import/write files. Portions of the code to be modified by the user are 
+# marked above by '***'
 
 
 ## Load libraries
 library("data.table")
 library("raster")
 
+# *** Change path
 setwd("C:/Users/kitty/Documents/Research/SIF/UrbanVPRM/UrbanVPRM/dataverse_files/")
 
-## Model parameters from Mahadevan et al. 2008 & Optimization from Duke Forest
 
 ## Land cover types: evergreen, deciduous, mixed, shrublands (open and closed), savannas, (savanna, woody), croplands, grasslands, wetlands, "other"
 
 VPRM_LCs = c("ENF", "DBF", "MXF", "SHB", "SVN", "CRP", "CORN", "GRS", "WET", "OTH", "URB")
-## Optimization sites
-# ENF: NOBS (boreal), NIWOT (montane coniferous), METOLIUS (ponderosa pine)
-# ENF: (tropical): DONALDSON
-# DBF: HARVARD or Duke
-# MXF: HOWLAND
-# SHB: Lucky Hills
-# SVN: TONZI
-# SOY: MEAD-S2
-# CRP: MEAD (USED CORN)
-# GRS: VAIRA
-# WET: PEATLAND
-# OTH: 0 fluxes (here used for water)
-# URB: Urban
 
-### Model's parameters 
-#VPRM_DBF= c(0, 20, 40, 5, 570, 0.127, 0.271, 0.25) # Mahadevan et al. 2008 (Harvard Forest)
-#VPRM_DBF= c(0, 30, 40, 5, 863.43378, 0.09355, 0.1379, 1.09) # Winbourne et al. 2021 (Duke Forest)
-#VPRM_MXF= c(0, 20, 40, 2, 629, 0.123, 0.244, -0.24)
-#VPRM_URB= c(0, 20, 40, 2, 629, 0.123, 0.244, -0.24)
-#VPRM_SHB= c(2, 20, 40, 1, 321, 0.122, 0.028, 0.48)
-## USING CORN FOR CRP
-#VPRM_SOY= c(5, 22, 40, 2, 2051, 0.064, 0.209, 0.20)
-#VPRM_CRP= c(5, 22, 40, 2, 1250, 0.075, 0.173, 0.82)
-#VPRM_GRS= c(2, 18, 40, 1, 542, 0.213, 0.028, 0.72)
-#VPRM_SVN= c(2, 20, 40, 1, 3241, 0.057, 0.012, 0.58)
-#VPRM_WET= c(0, 20, 40, 3, 558, 0.051, 0.081, 0.24)
-## USING NIWOT FOR ENF
-#VPRM_ENF= c(0, 20, 40, 1, 446, 0.128, 0.250, 0.17)
-#VPRM_OTH= c(0, 0, 0, 0, 0, 0, 0, 0)
 
 ### Model's parameters from Gourdji et al. 2021
 VPRM_DBF= c(0, 45, 23, -15, 0.55, -0.1023, 539, 0.12, 0.065, 0.0024, 4.61, 0.116, -0.0005, 0.0009)
 VPRM_MXF= c(0, 45, 18, 1, 0.05, -0.1097, 506, 0.47, 0.088, 0.0047, 1.39, -0.530, 0.2063,-0.0054)
-#VPRM_URB= c(0, 45, 20, 11, 0.1, -0.1273, 673, -6.18, 0.853, -0.0250, 5.19, 1.749, -0.2829, 0.0166) #Used Grass/Pasture/Developed-open from Gourdji et al. 2021
 VPRM_URB= c(0, 45, 23, -15, 0.55, -0.1023, 539, 0.12, 0.065, 0.0024, 4.61, 0.116, -0.0005, 0.0009) #Used DBF/Urban from Gourdji et al. 2021
 VPRM_SHB= c(0, 45, 17, 5, 0.1, -0.0996, 811, 1.53, 0.004, 0.0049, 0.09, -1.787, 0.4537, -0.0138)
 
@@ -66,13 +44,10 @@ VPRM_param = rbind(VPRM_ENF, VPRM_DBF, VPRM_MXF, VPRM_SHB, VPRM_SVN, VPRM_CRP, V
 VPRM_param = as.data.table(VPRM_param)
 
 ## Units are: T (°C); PAR(umole m-2 s-1); lambda (umole CO2 m-2 s-1/umole PAR m-2 s-1); alpha (umole CO2 m-2 s-1 / 0C); B (umole CO2 m-2 s-1); 
-#par_names=c("Tmin", "Topt", "Tmax", "Tlow", "PAR0", "lambda", "alpha", "beta")
 par_names=c("Tmin", "Tmax", "Topt", "Tcrit", "Tmult", "lambda", "PAR0", "beta", "alpha1", "alpha2", "gam", "theta1", "theta2", "theta3")
 setnames(VPRM_param, paste0("V", 1:14),par_names)
 VPRM_param = cbind(VPRM_LCs, VPRM_param)
 rm(VPRM_CRP,VPRM_DBF,VPRM_ENF,VPRM_GRS,VPRM_MXF,VPRM_OTH,VPRM_SHB,VPRM_SVN,VPRM_URB,VPRM_WET,VPRM_LCs,par_names)
-
-
 
 
 
@@ -101,7 +76,7 @@ LC_lookup = function(LC,C4,veg_class){
       return("CRP")
     }
   #} else if (LC %in% c()){ return("CRN")} 
-  #### EDIT ACI_LC_to_NLCD_LC.R TO DIFFERENTIATE CORN FROM OTHER CROPS ###
+  #### Run ACI_C3C4_fraction.R TO DIFFERENTIATE CORN FROM OTHER CROPS ###
     
   } else if (LC %in% c(13,16)){ #13=Urban/built-up lands, 16=Barren
     return("URB")
@@ -157,7 +132,6 @@ getPScale = function(idx,EVI,wtr){
   PScale   = (EVI - EVI_min)/EVI_delta
   PScale[PScale<0] = 0
   PScale[PScale>1] = 1
-  #PScale[abs(PScale)>0] = 1
   if(is.na(SOS_i) & is.na(EOS_i)){
     SOS_i<-1
     EOS_i<-365
@@ -185,7 +159,6 @@ getSEoSScale = function(idx,EVI,wtr){
   SEoS_Scale = EVI*0+1
   SEoS_Scale[is.na(SEoS_Scale)]=1
   
-  #PScale[abs(PScale)>0] = 1
   if(is.na(SOS_i) & is.na(EOS_i)){
     SOS_i<-1
     EOS_i<-365
@@ -204,7 +177,7 @@ getSEoSScale = function(idx,EVI,wtr){
   }
   # Prior to bud burst (Start of Season), SEoS_Scale set to 0
   SEoS_Scale[1:(24*SOS_i)] <- 0
-  # PScale Set to 0 during dormancy (after 85% decrease in greenness)
+  # SEoS_Scale Set to 0 during dormancy
   SEoS_Scale[(24*EOS_i):length(SEoS_Scale)] <- 0
   return(SEoS_Scale)
 }
@@ -231,9 +204,9 @@ getCScale = function(idx,CCI,wtr){
   if(is.na(EOS_i)){
     EOS_i<-365
   }
-  # Prior to bud burst (Start of Season), PScale set to 0
+  # Prior to bud burst (Start of Season), CScale set to 0
   CScale[1:(24*SOS_i)] <- 0
-  # PScale Set to 0 during dormancy (after 85% decrease in greenness)
+  # CScale Set to 0 during dormancy
   CScale[(24*EOS_i):length(CScale)] <- 0
   return(CScale)
 }
@@ -261,11 +234,10 @@ getWScale = function(idx,EVI,LSWI,wtr){
   LSWI_gsl = LSWI[SOS:EOS]
   
   LSWI_max = max(LSWI_gsl)
-  #LSWI_min = min(LSWI_gsl)
   rm(LSWI_gsl)
   
   #WScale = (LSWI-LSWI_min)/(LSWI_max-LSWI_min) #WScale from Hu at al. & Gourdji et al. 2021
-  WScale = (1+LSWI)/(1+LSWI_max)
+  WScale = (1+LSWI)/(1+LSWI_max) # No significant difference if use Hardimann et al. version
   WScale[WScale < 0] = 0 
   WScale[WScale > 1] = 1 # WScale should be always between 0 and 1
   return(WScale)
@@ -300,12 +272,11 @@ getFluxes = function(time,idx,lc,isa,wtr,EVI,LSWI,tair,swrad){
   
   ## GEE equation
   GEE = lmbd * TScale * SEoS_Scale * WScale0 * EVI * PAR / (1+PAR/PAR0) 
-  #GEE = lmbd * TScale * CScale * WScale0 * EVI * PAR / (1+PAR/PAR0) #Using CCI instead of PScale
+  #GEE = lmbd * TScale * CScale * WScale0 * EVI * PAR / (1+PAR/PAR0) #Using CCI instead of SEoS_Scale
   
   # Normalize GEE flux so sub-pixel water isn't counted..
   GEE = GEE * (1 - wtr)
   
-  #MAY NEED TO MOVE THIS TO AFTER R EQUATION
   TScale = as.data.frame(as.numeric(TScale))
   SEoS_Scale = as.data.frame(as.numeric(SEoS_Scale))
   #PScale = as.data.frame(as.numeric(PScale))
@@ -330,13 +301,6 @@ getFluxes = function(time,idx,lc,isa,wtr,EVI,LSWI,tair,swrad){
   
   Tcrit = VPRM_param[VPRM_LCs==lc, Tcrit]
   Tmult = VPRM_param[VPRM_LCs==lc, Tmult]
-  #tlow = VPRM_param[VPRM_LCs==lc,Tlow]
-  
-  ## respiration occurs at rate defined by beta below freezing
-  #tair[tair<0] = 0
-  
-  ## Respiration is a linear function of air temperature
-  #Re = (alpha * tair) + beta
   
   #Modified air temperature defined by Gourdji et al. 2021 to account for non-zero respiration at low temperatures
   Tp <- tair
@@ -369,10 +333,6 @@ getFluxes = function(time,idx,lc,isa,wtr,EVI,LSWI,tair,swrad){
   
   # Modify total respiration by percentage of water within the pixel
   Re = Re * (1-wtr)
-  
-  # MAY NEED TO RE-IMPLEMENT THIS v
-  # In Winbourne et al. 2021, minimum ecosystem respiration is set to lowest observed value
-  #if(wtr == 0) {Re[which(Re < 1.7795)] <- 1.7795}
   
   ## Merge all outputs in the same data table 
   result = cbind(result,Re,Ra,Rh,EVI_scale) 
